@@ -77,11 +77,11 @@ function embedly(opts, callback) {
     var url = this.url('services/javascript', '1'),
         errorMsg = 'Failed to fetch /1/services/javascript during init.';
 
-    request
-      .get(url)
-      .set('User-Agent', this.config.userAgent)
-      .set('Accept', 'application/json')
-      .end(function(e, res) {
+    // build initial request //
+    var req = this.buildGetRequest(url, this.config);
+
+    // initiate the request //
+    req.end(function(e, res) {
         if (!!e) return callback(e);
         if (res.status >= 400) {
           return callback(new Error(errorMsg), res);
@@ -101,7 +101,7 @@ function embedly(opts, callback) {
   } else {
     callback(null, this);
   }
-};
+}
 
 embedly.prototype.url = function(endpoint, version) {
   var proto = this.config.secure ? 'https' : 'http';
@@ -174,10 +174,7 @@ embedly.prototype.apiCall = function(endpoint, version, params, callback) {
     // abandoned js, we should probably use a different http client lib.
     //
     // https://github.com/visionmedia/superagent/issues/128
-    var req = request
-      .get(url)
-      .set('User-Agent', this.config.userAgent)
-      .set('Accept', 'application/json');
+    var req = this.buildGetRequest(url, this.config);
     req.request().path += query;
     req.end(function(e, res) {
         if (!!e) return callback(e)
@@ -190,6 +187,20 @@ embedly.prototype.apiCall = function(endpoint, version, params, callback) {
   } else {
     callback(null, self.serializeResponse(origUrls, '[]'));
   }
+};
+
+embedly.prototype.buildGetRequest = function(url, config) {
+  var req = request
+      .get(url)
+      .set('User-Agent', config.userAgent)
+      .set('Accept', 'application/json');
+  var timeout = config.timeout;
+
+  if (isFinite(timeout) && !isNaN(timeout)) {
+    req.timeout(timeout);
+  }
+
+  return req;
 };
 
 exports = module.exports = embedly
